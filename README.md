@@ -1,6 +1,3 @@
-Update
-Newer versions are not in folders
-
 Welcome to ReType — an automated typing assistant!
 
 What does it do?  
