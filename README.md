@@ -1,4 +1,4 @@
-#Update
+Update
 Newer versions are not in folders
 
 Welcome to ReType — an automated typing assistant!
