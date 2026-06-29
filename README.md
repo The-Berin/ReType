@@ -20,11 +20,16 @@ clipboard dump.
 - **Countdown** before typing so you have time to click into your target window.
 - **Humanize rhythm** — gaussian timing jitter, longer rests after spaces and
   punctuation, and the occasional "thinking" pause.
-- **Realistic typos** — when enabled, ReType occasionally fumbles a *neighbouring*
-  QWERTY key and then backspaces to fix it.
-- **Stop button** that actually works mid-type (the whole thing is event-driven,
-  so the window never freezes).
-- **Corner failsafe** — slam your mouse into any screen corner to abort instantly.
+- **Realistic mistakes** — five human error patterns, each corrected the way a
+  person would: adjacent-key slips, transpositions (`teh` → `the`), doubled
+  letters, case slips, and *delayed* corrections where it types a few more
+  characters before noticing and backing up to fix the error.
+- **WPM-based speed that drifts** — the rhythm bursts and tires over time instead
+  of sitting at a robotic constant.
+- **Pause / Resume / Stop** that work instantly mid-type (the engine is a single
+  event-driven op-stream, so the window never freezes).
+- **Live progress bar** and **corner failsafe** — slam your mouse into any screen
+  corner to abort instantly.
 
 ---
 
@@ -39,7 +44,7 @@ pip install -r requirements.txt
 ## Run
 
 ```bash
-python "Ver 3.0/ReType Ver 3.0.py"
+python "Ver 4.0/ReType Ver 4.0.py"
 ```
 
 1. Paste or type your text into the box.
@@ -61,7 +66,8 @@ The repo keeps the project's history:
 | `Ver 0.0` | First prototype — single-line entry, blocking `time.sleep`, types all at once. |
 | `Ver 1.0` | Multi-line text box, character-by-character typing, first pass at random pauses/typos. |
 | `Ver 2.0` | Speed slider and error toggle added; timing logic still had a scheduling race. |
-| `Ver 3.0` | **Current.** Rewritten as a single event-driven app: working Stop button, countdown, gaussian timing, QWERTY-adjacent typos, corner failsafe, and no hardcoded paths. |
+| `Ver 3.0` | Rewritten as a single event-driven app: working Stop button, countdown, gaussian timing, QWERTY-adjacent typos, corner failsafe, and no hardcoded paths. |
+| `Ver 4.0` | **Current.** Full realistic typing engine — WPM-based drifting speed, five human error patterns with delayed corrections, Pause/Resume/Stop, live progress bar. |
 
 ## Notes
 
