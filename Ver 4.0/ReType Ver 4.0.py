@@ -42,6 +42,10 @@ ADJACENT_KEYS = {
     'z': 'asx',
 }
 
+# The original hand-picked fat-finger combos from ReType 1.0/2.0 - kept on
+# purpose. ReType still occasionally bangs out one of these and corrects it.
+CUSTOM_ERRORS = ['jj', 'gh', 'ik', 'il', 'l;']
+
 SENTENCE_END = ".!?"
 PUNCTUATION = ",;:" + SENTENCE_END
 
@@ -292,7 +296,7 @@ class ReTypeApp:
         return max(8, int(delay))
 
     def _choose_error_kind(self, text, i):
-        kinds = ["adjacent", "double", "case", "delayed"]
+        kinds = ["adjacent", "double", "case", "delayed", "custom"]
         if i + 1 < len(text) and text[i + 1].isalpha():
             kinds.append("transpose")
         return random.choice(kinds)
@@ -328,6 +332,15 @@ class ReTypeApp:
                     yield ("type", wrong, self._char_delay(wrong))
                     yield ("pause", None, random.randint(120, 350))
                     yield ("back", None, random.randint(90, 200))
+                    # fall through and type the right char
+
+                elif kind == "custom":
+                    typo = random.choice(CUSTOM_ERRORS)
+                    for c in typo:
+                        yield ("type", c, self._char_delay(c))
+                    yield ("pause", None, random.randint(120, 420))
+                    for _ in typo:
+                        yield ("back", None, random.randint(90, 200))
                     # fall through and type the right char
 
                 elif kind == "double":
