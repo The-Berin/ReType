@@ -97,8 +97,15 @@ The repo keeps the project's history:
 
 ## Notes
 
-- ReType drives your real keyboard via [PyAutoGUI](https://pyautogui.readthedocs.io/),
-  so the active window genuinely receives the keystrokes — make sure the right
-  window is focused before the countdown runs out.
+- ReType drives your real keyboard via OS-level injection, so the active window
+  genuinely receives the keystrokes — make sure the right window is focused
+  before the countdown runs out.
+- **Proofreading typists (Baron) and real windows:** the proofread pass steers
+  the cursor with arrow keys, which assumes one arrow press moves one character
+  and that nothing else disturbs the caret. That holds in plain text boxes and
+  most forms. In editors that auto-indent, autocorrect, or auto-close brackets
+  (IDEs, Google Docs, Word), the cursor can drift — use **Demo** mode (always
+  exact) or a plain field for those, and don't click into the target window
+  while a run is in progress.
 - An optional `ReType.ico` placed next to the script (or in the repo root) is used
   as the window icon. It's entirely optional; the app runs fine without it.

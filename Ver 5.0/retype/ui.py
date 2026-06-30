@@ -257,7 +257,7 @@ class App:
 
     def quit(self):
         self._cancel_countdown()
-        self.engine.stop()
+        self.engine.stop(force=True)
         self.root.destroy()
 
     def _set_running(self, running):

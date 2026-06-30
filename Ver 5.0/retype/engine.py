@@ -2,7 +2,11 @@
 The runner: play a humanizer op-stream into a "sink".
 
 TypeEngine pulls ops one at a time and schedules the next with Tk's `after`, so
-the GUI stays live - Pause, Resume and Stop take effect between any two ops.
+the GUI stays live - Pause, Resume and Stop take effect between ops. The one
+exception is a proofread fix: its delete-and-retype is bracketed by
+('edit_begin', ...) / ('edit_end', ...) and treated as indivisible, so Pause or
+Stop wait for the edit to finish rather than leaving a word half-replaced (the
+corner failsafe still aborts immediately).
 
 Op kinds:
     ('type', ch, ms)        type a character at the cursor
@@ -99,17 +103,30 @@ class KeyboardSink:
         self._held = []                        # outstanding key-up timers
 
     def _printable(self, ch):
-        return len(ch) == 1 and ord(ch) >= 32
+        # one BMP/astral char, not a control char, not a lone surrogate
+        return (len(ch) == 1 and ord(ch) >= 32
+                and not (0xD800 <= ord(ch) <= 0xDFFF))
+
+    def _dwell_named(self, name):
+        """Press a named key (enter/tab) down now, release after a human dwell."""
+        pyautogui.keyDown(name)
+        ref = {"named": name}
+        ref["jid"] = self.root.after(random.randint(*self.dwell),
+                                     lambda r=ref: self._release(r))
+        self._held.append(ref)
 
     def write(self, ch):
         pyautogui.failSafeCheck()              # keep the corner-abort alive
+        if 0xD800 <= ord(ch) <= 0xDFFF:
+            return                             # never inject a malformed half-surrogate
+        dwelling = self.root is not None and sys.platform == "win32"
         if ch in ("\n", "\r"):
-            pyautogui.press("enter")
+            self._dwell_named("enter") if dwelling else pyautogui.press("enter")
             return
         if ch == "\t":
-            pyautogui.press("tab")
+            self._dwell_named("tab") if dwelling else pyautogui.press("tab")
             return
-        if self.root is not None and sys.platform == "win32" and self._printable(ch):
+        if dwelling and self._printable(ch):
             unicode_key(ch, up=False)          # press down now...
             ref = {"ch": ch}
             ref["jid"] = self.root.after(random.randint(*self.dwell),
@@ -117,12 +134,13 @@ class KeyboardSink:
             self._held.append(ref)             # ...release after a human dwell
         elif self._printable(ch):
             type_unicode_char(ch) if ord(ch) >= 127 else pyautogui.write(ch)
-        else:
-            type_unicode_char(ch)
 
     def _release(self, ref):
         try:
-            unicode_key(ref["ch"], up=True)
+            if "named" in ref:
+                pyautogui.keyUp(ref["named"])
+            else:
+                unicode_key(ref["ch"], up=True)
         except Exception:
             pass
         try:
@@ -159,7 +177,10 @@ class KeyboardSink:
                 except Exception:
                     pass
             try:
-                unicode_key(ref["ch"], up=True)
+                if "named" in ref:
+                    pyautogui.keyUp(ref["named"])
+                else:
+                    unicode_key(ref["ch"], up=True)
             except Exception:
                 pass
         self._held.clear()
@@ -221,36 +242,56 @@ class TypeEngine:
         self.ops = None
         self.total = 0
         self.net = 0
+        self.peak = 0               # high-water mark, so progress never goes backward
         self.job = None
         self.running = False
         self.paused = False
+        self._atomic = False        # inside an indivisible edit (delete+retype a fix)
+        self._deferred = None       # 'pause' / 'stop' requested during an atomic edit
 
     # ----------------------------------------------------------- lifecycle ---
     def start(self, ops_iterable, total_chars, sink=None):
-        self.stop()
+        self.stop(force=True)
         if sink is not None:
             self.sink = sink
         self.ops = iter(ops_iterable)
         self.total = max(1, total_chars)
         self.net = 0
+        self.peak = 0
         self.running = True
         self.paused = False
+        self._atomic = False
+        self._deferred = None
         self._tick()
 
     def pause(self):
-        if self.running and not self.paused:
-            self.paused = True
-            self._cancel()
+        if not self.running or self.paused:
+            return
+        if self._atomic:            # don't freeze mid-edit; pause once it's whole
+            self._deferred = "pause"
+            return
+        self._apply_pause()
+
+    def _apply_pause(self):
+        self.paused = True
+        self._cancel()
 
     def resume(self):
         if self.running and self.paused:
             self.paused = False
             self._tick()
 
-    def stop(self):
+    def stop(self, force=False):
+        # A non-forced Stop in the middle of an edit waits for the edit to finish
+        # so the document is never left with a word deleted but not yet replaced.
+        if self._atomic and not force and self.running:
+            self._deferred = "stop"
+            return
         self._cancel()
         self.running = False
         self.paused = False
+        self._atomic = False
+        self._deferred = None
         self.ops = None
         try:
             self.sink.release()
@@ -271,12 +312,31 @@ class TypeEngine:
         except StopIteration:
             self.running = False
             self.job = None
+            self._atomic = False
             try:
                 self.sink.release()
             except Exception:
                 pass
             if self.on_done:
                 self.on_done()
+            return
+
+        # Edit-group markers bracket the delete+retype of a single proofread fix.
+        if kind == "edit_begin":
+            self._atomic = True
+            self.job = self.root.after(1, self._tick)
+            return
+        if kind == "edit_end":
+            self._atomic = False
+            if self._deferred == "stop":
+                self._deferred = None
+                self.stop(force=True)
+                return
+            if self._deferred == "pause":
+                self._deferred = None
+                self._apply_pause()
+                return
+            self.job = self.root.after(1, self._tick)
             return
 
         try:
@@ -295,7 +355,7 @@ class TypeEngine:
             elif kind == "cursor_end":
                 self.sink.doc_end()
         except pyautogui.FailSafeException:
-            self.stop()
+            self.stop(force=True)      # a corner-abort overrides edit atomicity
             if self.on_abort:
                 self.on_abort("failsafe")
             return
@@ -303,6 +363,7 @@ class TypeEngine:
         if self.on_op:
             self.on_op(kind, value, delay)
         if self.on_progress and kind in ("type", "back"):
-            self.on_progress(max(0, self.net), self.total)
+            self.peak = max(self.peak, self.net)
+            self.on_progress(self.peak, self.total)
 
         self.job = self.root.after(max(1, int(delay)), self._tick)

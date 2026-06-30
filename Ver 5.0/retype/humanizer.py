@@ -376,6 +376,9 @@ class HumanTyper:
 
         # spotted it: a beat to actually register the mistake before fixing
         yield ('pause', None, self.rng.randint(450, 1500))
+        # the delete-and-retype is one indivisible edit - Pause/Stop wait it out
+        # so the document is never left with a word deleted but not yet replaced.
+        yield ('edit_begin', None, 0)
         for _ in range(wlen):
             yield ('back', None, self._key_ms('', 'x', in_word=True, in_burst=False,
                                               fam=0.5, pos=1, n=8))
@@ -388,6 +391,7 @@ class HumanTyper:
                                            fam=0.7, pos=1, n=8))
             self.committed += 1
             prev = c
+        yield ('edit_end', None, 0)
         yield ('pause', None, self.rng.randint(220, 680))       # re-read to confirm the fix
 
     def _generate_proofread(self, text):
