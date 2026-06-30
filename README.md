@@ -49,6 +49,10 @@ Seven personas, each a different real person:
 
 ### Extras
 
+- **Global hotkey + clipboard typing (6.0)** — copy text anywhere, focus your
+  target field, and press the hotkey (default `Ctrl+Alt+T`) to type your
+  clipboard without alt-tabbing back to ReType. Press it again to stop. Switch
+  the source between the text box and the clipboard.
 - **Live speed cardiogram** — a heartbeat strip of instantaneous WPM so you can
   *see* the rhythm breathe.
 - **Demo mode** — watch the whole performance (typos, corrections, pauses) play
@@ -69,7 +73,7 @@ pip install -r requirements.txt
 ## Run
 
 ```bash
-python "Ver 5.0/ReType Ver 5.0.py"      # or:  python -m retype   (from Ver 5.0/)
+python "Ver 6.0/ReType Ver 6.0.py"      # or:  python -m retype   (from Ver 6.0/)
 ```
 
 1. Drop your text into the box.
@@ -93,7 +97,8 @@ The repo keeps the project's history:
 | `Ver 2.0` | Speed slider and error toggle added; timing logic still had a scheduling race. |
 | `Ver 3.0` | Rewritten as a single event-driven app: working Stop button, countdown, gaussian timing, QWERTY-adjacent typos, corner failsafe, and no hardcoded paths. |
 | `Ver 4.0` | Full realistic typing engine — WPM-based drifting speed, five human error patterns with delayed corrections, Pause/Resume/Stop, live progress bar. |
-| `Ver 5.0` | **Current.** Research-grounded rewrite into the `retype` package: per-keystroke digraph timing, word bursts, seven typist personas, a fatigue/stamina arc, seven error types, a live speed cardiogram, and an in-app Demo mode. |
+| `Ver 5.0` | Research-grounded rewrite into the `retype` package: per-keystroke digraph timing, word bursts, seven typist personas, a fatigue/stamina arc, seven error types, a live speed cardiogram, and an in-app Demo mode. |
+| `Ver 6.0` | **Current.** Adds a global hotkey to start/stop a run from any window and a "type my clipboard" source — copy, focus the field, hit the hotkey. |
 
 ## Notes
 
